@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>.NET Creator</title>
+    <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+    <div class="app-window">
+        <div class="title-bar draggable">
+            <div class="side-title">.NET Creator for Linux</div>
+
+            <div class="window-controls no-drag">
+                <button id="min-btn" class="win-btn no-drag">—</button>
+                <button id="close-btn" class="win-btn no-drag">×</button>
+            </div>
+        </div>
+
+        <div class="left-block">
+            <div class="product-title">Клонировать проект</div>
+            <div class="left-block-content content">
+                <a href="index.html">Назад на главную</a>
+            </div>
+        </div>
+
+        <div class="main-panel">
+            <div class="loader">
+                Клонирование репозитория...
+            </div>
+
+            <div class="product-title" style="margin-bottom: 50px;">Клонирование репозитория</div>
+            <div class="main-panel-content content" id="templates-container">
+                
+                <div class="projectInfo">
+                    <label>Ссылка на репозиторий</label>
+                    <input type="text" id="repLink" />
+                    <span class="errorText" id="repLinkError">Поле не заполнено</span>
+                </div>
+
+                <div class="projectInfo">
+                    <label>Выбор папки:</label>
+                    <div class="changeFolder-block">
+                        <input type="text" id="projectPath" />
+                        <button type="button" id="chooseFolderBtn">...</button>
+                    </div>
+                    <span class="errorText" id="projectPathError">Поле не заполнено</span>
+                </div>
+
+                <input type="submit" value="Клонировать" id="clone" />
+                <span class="errorText" id="cloneError"></span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        window.addEventListener('DOMContentLoaded', async () => {
+            const closeBtn = document.getElementById('close-btn')
+            const minBtn = document.getElementById('min-btn')
+        
+            closeBtn.addEventListener('click', () => window.dotnetAPI.close())
+            minBtn.addEventListener('click', () => window.dotnetAPI.minimize())
+
+            const loader = document.querySelector('.loader')
+            loader.style.display = 'none'
+        
+            const projectPathInput = document.getElementById('projectPath')
+            const chooseFolderBtn = document.getElementById('chooseFolderBtn')
+        
+            const repLinkInput = document.getElementById('repLink')
+            const cloneBtn = document.getElementById('clone')
+        
+            const pathError = document.getElementById('projectPathError')
+            const repLinkError = document.getElementById('repLinkError')
+            const cloneError = document.getElementById('cloneError')
+        
+            repLinkError.style.display = 'none'
+            pathError.style.display = 'none'
+            cloneError.style.display = 'none'
+        
+            try {
+                const defaultPath = await window.dotnetAPI.getDefaultDocumentsPath()
+                if (defaultPath && !projectPathInput.value) projectPathInput.value = defaultPath
+            } catch {}
+        
+            chooseFolderBtn.addEventListener('click', async () => {
+            try {
+                const selected = await window.dotnetAPI.chooseProjectFolder(projectPathInput.value)
+                if (selected) projectPathInput.value = selected
+            } catch (e) {
+                console.error('chooseProjectFolder error:', e)
+            }
+            })
+        
+            cloneBtn.addEventListener('click', async (e) => {
+            e.preventDefault()
+        
+            const repoUrl = repLinkInput.value.trim()
+            const targetDir = projectPathInput.value.trim()
+        
+            repLinkError.style.display = 'none'
+            pathError.style.display = 'none'
+            cloneError.style.display = 'none'
+            cloneError.textContent = ''
+        
+            if (!repoUrl) {
+                repLinkError.textContent = 'Поле не заполнено'
+                repLinkError.style.display = 'block'
+                return
+            }
+        
+            if (!targetDir) {
+                pathError.textContent = 'Поле не заполнено'
+                pathError.style.display = 'block'
+                return
+            }
+        
+            try {
+                loader.style.display = 'flex'
+
+                const result = await window.dotnetAPI.cloneRepository({ repoUrl, targetDir })
+        
+                if (!result.ok) {
+                cloneError.style.display = 'block'
+                cloneError.textContent = `Ошибка: ${result.error || result.stderr || 'неизвестно'}`
+                return
+                }
+
+                const projectName = String(result.clonedPath).replace(/[\/\\]+$/, '').split(/[\/\\]/).pop()
+                await window.dotnetAPI.addRecentProject({
+                            name: projectName,
+                            path: result.clonedPath
+                        })
+        
+                if (result.clonedPath) {
+                await window.dotnetAPI.openInVSCode(result.clonedPath)
+                }
+                
+                window.dotnetAPI.close()
+            } catch (err) {
+                cloneError.style.display = 'block'
+                cloneError.textContent = `Ошибка: ${err}`
+            } finally {
+                loader.style.display = 'none'
+            }
+            })
+        })
+    </script>
+</body>
+</html>

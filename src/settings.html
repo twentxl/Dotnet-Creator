@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>.NET Creator</title>
+    <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+    <div class="app-window">
+        <div class="title-bar draggable">
+            <div class="side-title">.NET Creator for Linux</div>
+
+            <div class="window-controls no-drag">
+                <button id="min-btn" class="win-btn no-drag">—</button>
+                <button id="close-btn" class="win-btn no-drag">×</button>
+            </div>
+        </div>
+
+        <div class="left-block">
+            <div class="product-title">Настройки</div>
+            <div class="left-block-content content">
+                <a href="index.html">Назад на главную</a>
+            </div>
+        </div>
+
+        <div class="main-panel">
+            <div class="product-title" style="margin-bottom: 50px;">Основные настройки</div>
+            <div class="main-panel-content content" id="templates-container">
+                
+                <div class="projectInfo">
+                    <label>Основной редактор:</label>
+                    <div class="changeFolder-block">
+                        <input type="text" id="editorPath" />
+                        <button type="button" id="chooseFolderBtn">...</button>
+                    </div>
+                </div>
+
+                <input type="submit" value="Сохранить" id="save" />
+            </div>
+        </div>
+    </div>
+
+    <script>
+        window.addEventListener('DOMContentLoaded', async () => {
+            const closeBtn = document.getElementById('close-btn')
+            const minBtn = document.getElementById('min-btn')
+    
+            closeBtn.addEventListener('click', () => window.dotnetAPI.close())
+            minBtn.addEventListener('click', () => window.dotnetAPI.minimize())
+    
+            const editorPathInput = document.getElementById('editorPath')
+            const chooseFolderBtn = document.getElementById('chooseFolderBtn')
+            const saveBtn = document.getElementById('save');
+    
+            try {
+                const settings = await window.dotnetAPI.getSettings()
+                if (settings && settings.editorPath) {
+                    editorPathInput.value = settings.editorPath
+                }
+            } catch (e) {
+                console.error('getSettings error:', e)
+            }
+    
+            chooseFolderBtn.addEventListener('click', async () => {
+                try {
+                    const selected = await window.dotnetAPI.chooseEditorFile(editorPathInput.value)
+                    if (selected) {
+                        editorPathInput.value = selected
+                        const res = await window.dotnetAPI.setSettings({ editorPath: selected })
+                        if (!res.ok) {
+                            console.error('Не удалось сохранить settings.json')
+                        }
+                    }
+                } catch (e) {
+                    console.error('chooseEditorFile error:', e)
+                }
+            })
+
+            saveBtn.addEventListener('click', async () => {
+                try {
+                    const editorPath = editorPathInput.value.trim()
+
+                    const res = await window.dotnetAPI.setSettings({ editorPath })
+                    if (res?.ok) {
+                    alert('Сохранено')
+                    } else {
+                    console.error('Не удалось сохранить settings.json', res)
+                    }
+                } catch (e) {
+                    console.error('save settings error:', e)
+                }
+            })
+        })
+    </script>
+</body>
+</html>

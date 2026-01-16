@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>.NET Creator</title>
+    <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+    <div class="app-window">
+        <div class="title-bar draggable">
+            <div class="side-title">.NET Creator for Linux</div>
+
+            <div class="window-controls no-drag">
+                <button id="min-btn" class="win-btn no-drag">—</button>
+                <button id="close-btn" class="win-btn no-drag">×</button>
+            </div>
+        </div>
+
+        <div class="left-block">
+            <div class="product-title">Создать проект</div>
+            <div class="left-block-content content">
+                <a href="chooseTemplate.html">Назад к шаблонам</a>
+            </div>
+        </div>
+
+        <div class="main-panel">
+            <div class="loader">
+                Создание проекта...
+            </div>
+
+            <div class="product-title" style="margin-bottom: 50px;">Создание проекта</div>
+            <div class="main-panel-content content" id="templates-container">
+                <div class="projectInfo">
+                    <label>Название проекта</label>
+                    <input type="text" id="projectName" />
+                    <span class="errorText" id="projectNameError">Поле не заполнено</span>
+                </div>
+
+                <div class="projectInfo">
+                    <label>Выбор папки:</label>
+                    <div class="changeFolder-block">
+                        <input type="text" id="projectPath" />
+                        <button type="button" id="chooseFolderBtn">...</button>
+                    </div>
+                    <span class="errorText" id="projectPathError">Поле не заполнено</span>
+                </div>
+
+                <input type="submit" value="Создать проект" id="createProject" />
+
+                <span class="errorText" id="createError"></span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        window.addEventListener('DOMContentLoaded', async () => {
+            const closeBtn = document.getElementById('close-btn')
+            const minBtn = document.getElementById('min-btn')
+            const container = document.getElementById('templates-container')
+
+            closeBtn.addEventListener('click', () => window.dotnetAPI.close())
+            minBtn.addEventListener('click', () => window.dotnetAPI.minimize())
+
+            const loader = document.querySelector('.loader')
+            loader.style.display = 'none'
+
+            const projectPathInput = document.getElementById('projectPath')
+            const chooseFolderBtn = document.getElementById('chooseFolderBtn')
+            const createProjectBtn = document.getElementById('createProject')
+
+            const pathError = document.getElementById('projectPathError')
+            const nameError = document.getElementById('projectNameError')
+            const createError = document.getElementById('createError')
+            nameError.style.display = 'none'
+            pathError.style.display = 'none'
+            createError.style.display = 'none'
+
+            const params = new URLSearchParams(window.location.search)
+            const safeId = params.get('template')
+
+            try {
+                const defaultPath = await window.dotnetAPI.getDefaultDocumentsPath()
+                if (defaultPath && !projectPathInput.value) {
+                    projectPathInput.value = defaultPath
+                }
+            } catch (e) {
+                console.error('getDefaultDocumentsPath error:', e)
+            }
+
+            chooseFolderBtn.addEventListener('click', async () => {
+                try {
+                    const selected = await window.dotnetAPI.chooseProjectFolder(projectPathInput.value)
+                    if (selected) projectPathInput.value = selected
+                } catch (e) {
+                    console.error('chooseProjectFolder error:', e)
+                }
+            })
+
+            createProjectBtn.addEventListener('click', async (e) => {
+                e.preventDefault()
+
+                const projectName = document.getElementById('projectName').value
+                const projectPath = projectPathInput.value
+
+                if(!projectName) { nameError.style.display = 'block'; return; }
+                else nameError.style.display = 'none'
+
+                if(!projectPath) { pathError.style.display = 'block'; return; }
+                else pathError.style.display = 'none'
+
+                try {
+                    loader.style.display = 'flex'
+                    const result = await window.dotnetAPI.createProject({
+                        template: safeId,
+                        name: projectName,
+                        path: projectPath
+                    })
+
+                    if (!result.ok) {
+                        createError.style.display = 'block'
+                        createError.textContent = `Ошибка при создании проекта: ${result.error || result.stderr || 'неизвестно'}`
+                    } else {
+                        createError.style.display = 'none'
+                        await window.dotnetAPI.addRecentProject({
+                            name: projectName,
+                            path: `${projectPath}/${projectName}`
+                        })
+
+                        try {
+                            const fullProjectFolder = projectPath.endsWith('/') || projectPath.endsWith('\\')
+                                                    ? projectPath + projectName
+                                                    : projectPath + '/' + projectName
+
+                            await window.dotnetAPI.openInVSCode(fullProjectFolder)
+
+                            window.dotnetAPI.close()
+                        }
+                        catch {
+                            createError.style.display = 'block'
+                            createError.textContent = `Проект создан, но ошибка при открытии Visual Studio Code`
+                        }
+                    }
+                } catch (err) {
+                    console.error('Ошибка при создании проекта:', err)
+                    createError.style.display = 'block'
+                    createError.textContent = `Ошибка при создании проекта: ${err}`
+                }
+                finally {
+                    loader.style.display = 'none'
+                }
+            })
+        })
+    </script>
+</body>
+</html>

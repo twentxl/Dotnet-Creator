@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>.NET Creator</title>
+    <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+    <div class="app-window">
+        <div class="title-bar draggable">
+            <div class="side-title">.NET Creator for Linux</div>
+
+            <div class="window-controls no-drag">
+                <button id="min-btn" class="win-btn no-drag">—</button>
+                <button id="close-btn" class="win-btn no-drag">×</button>
+            </div>
+        </div>
+
+        <div class="left-block">
+            <div class="product-title">Создать проект</div>
+            <div class="left-block-content content">
+                <a href="index.html">Назад на главную</a>
+            </div>
+        </div>
+
+        <div class="main-panel">
+            <div class="product-title">Выбрать проект</div>
+            <div class="main-panel-content content" id="templates-container">
+            </div>
+        </div>
+    </div>
+
+   <script>
+    window.addEventListener('DOMContentLoaded', () => {
+        const closeBtn = document.getElementById('close-btn')
+        const minBtn = document.getElementById('min-btn')
+        const container = document.getElementById('templates-container')
+
+        closeBtn.addEventListener('click', () => window.dotnetAPI.close())
+        minBtn.addEventListener('click', () => window.dotnetAPI.minimize())
+
+        function createTemplateCard(t) {
+            const langs = (t.language || '')
+                .replace(/[\[\]]/g, '')
+                .split(',')
+                .map(x => x.trim())
+                .filter(Boolean)
+
+            const short = (t.shortName || '').trim()
+            const safeId = short
+                .toLowerCase()
+                .replace(/\s+/g, '-')
+                .replace(/[^a-z0-9\-_]/gi, '') || 'template';
+
+            const card = document.createElement('a')
+            card.href = `createProject.html?template=${encodeURIComponent(safeId)}`
+            card.className = 'template-card'
+            card.id = safeId
+
+            const tagsHtml = langs.length
+                ? langs.map(l => `<span class="tag">${l}</span>`).join('')
+                : '<span class="tag">n/a</span>'
+
+            card.innerHTML = `
+                <div class="template-icon">
+                    <img src="img/dotnet_img.png" alt="Template icon">
+                </div>
+                <div class="template-body">
+                    <div class="template-title">${t.name}</div>
+                    <div class="template-desc">
+                        ${t.tags || ''}
+                    </div>
+                    <div class="template-tags">
+                        ${tagsHtml}
+                    </div>
+                </div>
+            `
+            return card
+        }
+
+        async function loadTemplates() {
+            try {
+                const templates = await window.dotnetAPI.getTemplates()
+                container.innerHTML = ''
+                if (!templates || !templates.length) {
+                    container.innerHTML =
+                    '<div style="color:#ccc;font-size:13px">Шаблоны не найдены</div>'
+                    return
+                }
+                templates.forEach(t => container.appendChild(createTemplateCard(t)))
+            } catch (e) {
+                container.innerHTML =
+                '<div style="color:#f55">Ошибка при получении шаблонов dotnet</div>'
+                console.error(e)
+            }
+        }
+
+        loadTemplates()
+    })
+    </script>
+</body>
+</html>

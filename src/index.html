@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>.NET Creator</title>
+    <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+    <div class="app-window">
+        <div class="title-bar draggable">
+            <div class="side-title">.NET Creator for Linux</div>
+
+            <div class="window-controls no-drag">
+                <button id="min-btn" class="win-btn no-drag">—</button>
+                <button id="close-btn" class="win-btn no-drag">×</button>
+            </div>
+        </div>
+
+        <div class="left-block">
+            <div class="product-title">Главная</div>
+            <div class="left-block-content content">
+                <a href="chooseTemplate.html">Создать проект</a>
+                <a href="cloning.html">Клонировать проект</a>
+                <a href="settings.html">Настройки</a>
+            </div>
+        </div>
+
+        <div class="main-panel">
+            <div class="product-title">Последние проекты</div>
+            <div class="main-panel-content content" id="templates-container">
+            </div>
+        </div>
+    </div>
+
+    <div id="contextMenu" class="context-menu">
+        <button id="ctxDeleteBtn" class="context-menu-item">Удалить проект</button>
+    </div>
+
+    <script>
+        window.addEventListener('DOMContentLoaded', async () => {
+            const closeBtn = document.getElementById('close-btn')
+            const minBtn = document.getElementById('min-btn')
+            const container = document.getElementById('templates-container')
+
+            const contextMenu = document.getElementById('contextMenu')
+            const ctxDeleteBtn = document.getElementById('ctxDeleteBtn')
+            let contextProject = null
+
+            closeBtn.addEventListener('click', () => window.dotnetAPI.close())
+            minBtn.addEventListener('click', () => window.dotnetAPI.minimize())
+
+            const createLink = document.querySelector('a[href="chooseTemplate.html"]')
+            const cloningLink = document.querySelector('a[href="cloning.html"]')
+
+            createLink.addEventListener('click', async (e) => {
+                e.preventDefault()
+
+                try {
+                    const settings = await window.dotnetAPI.getSettings()
+                    const editorPath = settings && settings.editorPath
+                        ? String(settings.editorPath).trim()
+                        : ''
+
+                    if (!editorPath) {
+                        alert('Укажите путь к редактору в настройках.')
+                        return
+                    }
+                    window.location.href = 'chooseTemplate.html'
+                } catch (err) {
+                    console.error('getSettings error:', err)
+                    alert('Не удалось прочитать настройки. Укажите редактор в настройках.')
+                }
+            })
+
+            cloningLink.addEventListener('click', async (e) => {
+                e.preventDefault()
+
+                try {
+                    const settings = await window.dotnetAPI.getSettings()
+                    const editorPath = settings && settings.editorPath
+                        ? String(settings.editorPath).trim()
+                        : ''
+
+                    if (!editorPath) {
+                        alert('Укажите путь к редактору в настройках.')
+                        return
+                    }
+                    window.location.href = 'cloning.html'
+                } catch (err) {
+                    console.error('getSettings error:', err)
+                    alert('Не удалось прочитать настройки. Укажите редактор в настройках.')
+                }
+            })
+
+            try {
+                const settings = await window.dotnetAPI.getSettings()
+                const recent = Array.isArray(settings.recentProjects) ? settings.recentProjects : []
+
+                if (!recent.length) {
+                    container.innerHTML = '<div style="color:#ccc;font-size:13px">Нет последних проектов</div>'
+                    return
+                }
+
+                container.innerHTML = ''
+
+                recent.forEach(p => {
+                    const card = document.createElement('div')
+                    card.className = 'template-card'
+
+                    card.innerHTML = `
+                        <div class="template-icon">
+                            <img src="img/dotnet_img.png" alt="Project icon">
+                        </div>
+                        <div class="template-body">
+                            <div class="template-title">${p.name}</div>
+                            <div class="template-desc">
+                                ${p.path}
+                            </div>
+                        </div>
+                    `
+
+                    card.addEventListener('click', async () => {
+                        try {
+                            const res = await window.dotnetAPI.openInVSCode(p.path)
+                            if (!res.ok) {
+                                console.error('openInVSCode error:', res.error || res.stderr)
+                            }
+                            else {
+                                window.dotnetAPI.close()
+                            }
+                        } catch (e) {
+                            console.error('openInVSCode error:', e)
+                        }
+                    })
+
+                    card.addEventListener('contextmenu', (e) => {
+                        e.preventDefault()
+                        contextProject = p
+
+                        contextMenu.style.display = 'block'
+                        contextMenu.style.left = `${e.clientX}px`
+                        contextMenu.style.top = `${e.clientY}px`
+                    })
+
+                    container.appendChild(card)
+                })
+            } catch (e) {
+                console.error('load recent projects error:', e)
+                container.innerHTML = '<div style="color:#f55">Ошибка при загрузке последних проектов</div>'
+            }
+
+            ctxDeleteBtn.addEventListener('click', async () => {
+                if (!contextProject) {
+                    contextMenu.style.display = 'none'
+                    return
+                }
+
+                const confirmDelete = confirm(
+                    `Удалить проект "${contextProject.name}"?\n` +
+                    'Будет удалена папка проекта и он исчезнет из списка последних.'
+                )
+                if (!confirmDelete) {
+                    contextMenu.style.display = 'none'
+                    contextProject = null
+                    return
+                }
+
+                try {
+                    const delRes = await window.dotnetAPI.deleteProjectFolder(contextProject.path)
+
+                    if (delRes.warning === 'folder does not exist') {
+                        alert(
+                            'Папка проекта уже отсутствует на диске.\n' +
+                            'Запись будет удалена только из списка последних проектов.'
+                        )
+                    } else if (!delRes.ok) {
+                        alert('Не удалось удалить папку проекта: ' + (delRes.error || 'неизвестная ошибка'))
+                        console.error('deleteProjectFolder error:', delRes)
+                        contextMenu.style.display = 'none'
+                        contextProject = null
+                        return
+                    }
+
+                    const settings = await window.dotnetAPI.getSettings()
+                    const list = Array.isArray(settings.recentProjects) ? settings.recentProjects : []
+
+                    const updated = list.filter(p => p.path !== contextProject.path)
+                    settings.recentProjects = updated
+
+                    await window.dotnetAPI.setSettings(settings)
+
+                    window.location.reload()
+                } catch (e) {
+                    console.error('delete project error:', e)
+                    alert('Ошибка при удалении проекта. См. консоль.')
+                } finally {
+                    contextMenu.style.display = 'none'
+                    contextProject = null
+                }
+            })
+
+            document.addEventListener('click', (e) => {
+                if (contextMenu.style.display === 'block' && !contextMenu.contains(e.target)) {
+                    contextMenu.style.display = 'none'
+                    contextProject = null
+                }
+            })
+            window.addEventListener('scroll', () => {
+                contextMenu.style.display = 'none'
+                contextProject = null
+            })
+            window.addEventListener('resize', () => {
+                contextMenu.style.display = 'none'
+                contextProject = null
+            })
+        })
+    </script>
+</body>
+</html>
