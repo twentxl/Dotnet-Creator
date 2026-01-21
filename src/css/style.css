@@ -154,7 +154,7 @@ input[type="submit"]:hover {
     background: transparent;
     border-radius: 4px;
     padding: 12px 14px;
-    max-width: 520px;
+    width: 100%;
 }
 
 .template-card:hover {
@@ -278,4 +278,9 @@ input[type="submit"]:hover {
 
 .context-menu-item:hover {
     background: #3e3e42;
+}
+
+.searchBar {
+    width: 100%;
+    margin: 20px 0;
 }

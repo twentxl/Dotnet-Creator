@@ -26,6 +26,7 @@
 
         <div class="main-panel">
             <div class="product-title">Выбрать проект</div>
+            <input type="text" placeholder="Поиск..." class="searchBar" id="templateSearch" />
             <div class="main-panel-content content" id="templates-container">
             </div>
         </div>
@@ -36,6 +37,7 @@
         const closeBtn = document.getElementById('close-btn')
         const minBtn = document.getElementById('min-btn')
         const container = document.getElementById('templates-container')
+        const searchInput = document.getElementById('templateSearch')
 
         closeBtn.addEventListener('click', () => window.dotnetAPI.close())
         minBtn.addEventListener('click', () => window.dotnetAPI.minimize())
@@ -78,6 +80,24 @@
             `
             return card
         }
+
+        function applySearchFilter() {
+            const query = (searchInput.value || '').trim().toLowerCase()
+            const cards = container.querySelectorAll('.template-card')
+
+            if (!query) {
+                cards.forEach(card => card.style.display = '')
+                return
+            }
+
+            cards.forEach(card => {
+                const titleEl = card.querySelector('.template-title')
+                const title = (titleEl?.textContent || '').trim().toLowerCase()
+
+                card.style.display = title.includes(query) ? '' : 'none'
+            })
+        }
+        searchInput.addEventListener('input', applySearchFilter)
 
         async function loadTemplates() {
             try {
