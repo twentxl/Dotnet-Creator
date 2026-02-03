@@ -1,7 +1,7 @@
-#".NET Creator" on electron JS
+# ".NET Creator" on electron JS
 
 ---
-##How to install:
+## How to install:
 - clone project
 - Go to terminal/cmd
 - Install electron npm packages:
