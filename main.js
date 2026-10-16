@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron')
+const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron')
 const { exec } = require('child_process')
 const path = require('path')
 const fs = require('fs')
@@ -270,6 +270,25 @@ ipcMain.handle('delete-project-folder', async (event, projectPath) => {
     }
 
     await fs.promises.rm(projectPath, { recursive: true, force: true })
+
+    return { ok: true }
+  } catch (e) {
+    console.error('delete-project-folder error:', e)
+    return { ok: false, error: e.message }
+  }
+})
+
+ipcMain.handle('open-project-folder', async (event, projectPath) => {
+  try {
+    if (!projectPath) {
+      return { ok: false, error: 'empty projectPath' }
+    }
+
+    if (!fs.existsSync(projectPath)) {
+      return { ok: true, warning: 'folder does not exist' }
+    }
+
+    shell.openPath(projectPath)
 
     return { ok: true }
   } catch (e) {

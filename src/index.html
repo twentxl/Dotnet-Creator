@@ -36,6 +36,7 @@
 
     <div id="contextMenu" class="context-menu">
         <button id="ctxDeleteBtn" class="context-menu-item">Удалить проект</button>
+        <button id="ctxOpenPathBtn" class="context-menu-item">Расположение файла</button>
     </div>
 
     <script>
@@ -47,6 +48,7 @@
 
             const contextMenu = document.getElementById('contextMenu')
             const ctxDeleteBtn = document.getElementById('ctxDeleteBtn')
+            const ctxOpenPathBtn = document.getElementById('ctxOpenPathBtn')
             let contextProject = null
 
             closeBtn.addEventListener('click', () => window.dotnetAPI.close())
@@ -219,6 +221,23 @@
                     contextProject = null
                 }
             })
+
+            ctxOpenPathBtn.addEventListener('click', async() => {
+                if (!contextProject) {
+                    contextMenu.style.display = 'none'
+                    return
+                }
+
+                try {
+                    const delRes = await window.dotnetAPI.openProjectFolder(contextProject.path)
+                } catch(e) {
+                    console.error('delete project error:', e)
+                    alert('Ошибка при удалении проекта. См. консоль.')
+                } finally {
+                    contextMenu.style.display = 'none'
+                    contextProject = null
+                }
+            });
 
             document.addEventListener('click', (e) => {
                 if (contextMenu.style.display === 'block' && !contextMenu.contains(e.target)) {

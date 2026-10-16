@@ -1,4 +1,17 @@
 {
-  "editorPath": "C:\\Users\\imarkevich\\AppData\\Local\\Programs\\Microsoft VS Code\\Code.exe",
-  "recentProjects": []
+  "editorPath": "/usr/share/code/code",
+  "recentProjects": [
+    {
+      "name": "certificateauthentification_api",
+      "path": "/home/imarkevich/source/repos/certificateauthentification_api"
+    },
+    {
+      "name": "ConsoleApp",
+      "path": "/home/imarkevich/source/repos/ConsoleApp"
+    },
+    {
+      "name": "testApi",
+      "path": "/home/imarkevich/source/repos/testApi"
+    }
+  ]
 }

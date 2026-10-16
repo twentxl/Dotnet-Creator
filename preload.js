@@ -14,6 +14,7 @@ contextBridge.exposeInMainWorld('dotnetAPI', {
 
   addRecentProject: (p) => ipcRenderer.invoke('add-recent-project', p),
   deleteProjectFolder: (projectPath) => ipcRenderer.invoke('delete-project-folder', projectPath),
+  openProjectFolder: (projectPath) => ipcRenderer.invoke('open-project-folder', projectPath),
   
   cloneRepository: (data) => ipcRenderer.invoke('clone-repository', data),
 
